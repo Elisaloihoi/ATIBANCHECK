@@ -1,11 +1,12 @@
 import requests
 import re
 import csv
+import os
 from datetime import datetime
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 
-TOKEN = "8504331141:AAEJqw8XSi_LEzLI7vNfzfiuxp0WDgNGtu0"
+TOKEN = os.getenv("TOKEN")
 
 # 🔍 IBAN zoeken
 def extract_iban(text):
@@ -13,13 +14,13 @@ def extract_iban(text):
     match = re.search(r'\b[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}\b', clean_text)
     return match.group(0) if match else None
 
-# 💾 opslaan (alleen IBAN + bank → veiliger)
+# 💾 opslaan (alleen IBAN + bank)
 def save_to_file(iban, bank):
     with open("iban_log.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([datetime.now(), iban, bank])
 
-# 🚀 start
+# 🚀 start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Stuur je tekst met IBAN, ik voeg de bank toe 💳")
 
@@ -59,7 +60,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await update.message.reply_text("⚠️ API fout")
 
-# 📤 export functie
+# 📤 export command
 async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open("iban_log.csv", "rb") as f:
@@ -67,12 +68,12 @@ async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("Nog geen data opgeslagen.")
 
-# ⚙️ setup
+# ⚙️ bot setup
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("export", export_file))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-print("Bot draait...")
+print("Bot gestart...")
 app.run_polling()
